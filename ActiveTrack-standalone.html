@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#26A69A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ActiveTrack">
+  <title>ActiveTrack</title>
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary:        #26A69A;
+  --primary-dark:   #00796B;
+  --primary-light:  #E0F2F1;
+  --accent:         #FF7043;
+  --bg:             #F0F4F3;
+  --card:           #FFFFFF;
+  --text:           #1C2B2A;
+  --text-soft:      #607D8B;
+  --border:         #E0ECEA;
+  --shadow-s:       0 1px 4px rgba(0,0,0,.08);
+  --shadow-m:       0 4px 16px rgba(0,0,0,.10);
+  --shadow-l:       0 8px 32px rgba(0,0,0,.14);
+  --radius-s:       10px;
+  --radius-m:       16px;
+  --radius-l:       24px;
+  --nav-h:          72px;
+  --header-h:       68px;
+  --transition:     .22s cubic-bezier(.4,0,.2,1);
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+#app { display: flex; flex-direction: column; height: 100dvh; }
+
+#header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--primary);
+  height: var(--header-h);
+  box-shadow: 0 2px 12px rgba(38,166,154,.30);
+}
+.header-content {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 100%; padding: 0 20px;
+}
+#page-title { font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1.2; }
+.subtitle    { font-size: .78rem; color: rgba(255,255,255,.75); margin-top: 2px; }
+.header-right { display: flex; gap: 8px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,.18); color: #fff; font-size: 1.1rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition);
+}
+.icon-btn:active { background: rgba(255,255,255,.30); }
+.google-connected { background: rgba(255,255,255,.30) !important; }
+
+#main-content {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 16px 16px calc(var(--nav-h) + 16px);
+  scroll-behavior: smooth;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+#bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.08);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
+}
+.nav-item {
+  flex: 1; border: none; background: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; color: var(--text-soft); transition: color var(--transition);
+  position: relative;
+}
+.nav-item.active { color: var(--primary); }
+.nav-item.active::before {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 36px; height: 3px; background: var(--primary); border-radius: 0 0 4px 4px;
+}
+.nav-icon  { font-size: 1.3rem; }
+.nav-label { font-size: .7rem; font-weight: 600; letter-spacing: .03em; }
+
+.section-card {
+  background: var(--card); border-radius: var(--radius-m);
+  padding: 18px; margin-bottom: 14px;
+  box-shadow: var(--shadow-s);
+}
+.section-title {
+  font-size: .78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-soft); margin-bottom: 14px;
+}
+
+.activity-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.activity-chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 12px 6px; border-radius: var(--radius-s); border: 2px solid transparent;
+  background: var(--bg); cursor: pointer; transition: all var(--transition);
+  gap: 6px; min-height: 76px;
+}
+.activity-chip:active { transform: scale(.96); }
+.activity-chip.selected {
+  border-color: var(--act-color, var(--primary));
+  background: color-mix(in srgb, var(--act-color, var(--primary)) 12%, white);
+}
+.chip-icon  { font-size: 1.8rem; line-height: 1; }
+.chip-label { font-size: .72rem; font-weight: 600; color: var(--text); text-align: center; }
+
+#time-section { animation: slideUp .25s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; } }
+
+.input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.input-group label { font-size: .78rem; font-weight: 600; color: var(--text-soft); }
+.input-group input,
+.input-group select,
+.input-group textarea {
+  border: 1.5px solid var(--border); border-radius: var(--radius-s);
+  padding: 11px 14px; font-size: .95rem; color: var(--text);
+  background: var(--bg); width: 100%; outline: none;
+  transition: border-color var(--transition);
+  font-family: inherit;
+}
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus { border-color: var(--primary); background: #fff; }
+.input-group textarea { resize: none; }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.sync-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-top: 1px solid var(--border); margin-bottom: 16px;
+}
+.sync-label { font-size: .88rem; font-weight: 500; color: var(--text); }
+.toggle { position: relative; display: inline-block; width: 46px; height: 26px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; background: #CBD5E1;
+  border-radius: 13px; cursor: pointer; transition: var(--transition);
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 20px; height: 20px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%;
+  transition: var(--transition); box-shadow: var(--shadow-s);
+}
+.toggle input:checked + .toggle-slider { background: var(--primary); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+.primary-btn {
+  width: 100%; padding: 15px; border: none; border-radius: var(--radius-m);
+  background: var(--primary); color: #fff; font-size: 1rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 8px; letter-spacing: .03em; transition: background var(--transition), transform var(--transition);
+  box-shadow: 0 4px 14px rgba(38,166,154,.35);
+}
+.primary-btn:active { background: var(--primary-dark); transform: scale(.98); }
+.primary-btn:disabled { background: #B2DFDB; box-shadow: none; cursor: not-allowed; }
+.btn-icon { font-size: 1.1rem; }
+
+.filter-row {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 14px;
+  overflow-x: auto; padding-bottom: 4px;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-row input[type="month"] {
+  border: 1.5px solid var(--border); border-radius: var(--radius-s);
+  padding: 8px 12px; font-size: .85rem; color: var(--text);
+  background: var(--card); outline: none; min-width: 140px;
+}
+.filter-btn {
+  padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--card); font-size: .78rem; font-weight: 600; color: var(--text-soft);
+  cursor: pointer; white-space: nowrap; transition: all var(--transition);
+}
+.filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.day-group { margin-bottom: 18px; }
+.day-label {
+  font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-soft); margin-bottom: 8px;
+  padding-left: 4px;
+}
+.activity-entry {
+  background: var(--card); border-radius: var(--radius-m);
+  padding: 14px 16px; margin-bottom: 8px;
+  box-shadow: var(--shadow-s);
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: box-shadow var(--transition);
+  border-left: 4px solid var(--act-color, var(--primary));
+}
+.activity-entry:active { box-shadow: var(--shadow-m); }
+.entry-icon  { font-size: 1.6rem; flex-shrink: 0; }
+.entry-info  { flex: 1; min-width: 0; }
+.entry-name  { font-size: .95rem; font-weight: 700; margin-bottom: 2px; }
+.entry-time  { font-size: .78rem; color: var(--text-soft); }
+.entry-badge {
+  font-size: .7rem; font-weight: 700; padding: 4px 9px;
+  border-radius: 20px; background: var(--primary-light); color: var(--primary-dark);
+  white-space: nowrap; flex-shrink: 0;
+}
+.entry-actions { display: flex; gap: 8px; margin-top: 10px; }
+.entry-detail { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+.entry-detail.open { max-height: 200px; }
+.detail-notes { font-size: .83rem; color: var(--text-soft); margin-top: 8px; font-style: italic; }
+.cal-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .72rem; color: #4285F4; margin-top: 6px; font-weight: 600;
+}
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-soft); }
+.empty-icon  { font-size: 3rem; margin-bottom: 12px; }
+.empty-text  { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+.empty-hint  { font-size: .83rem; }
+
+.month-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 0 16px;
+}
+.month-nav h2 { font-size: 1.1rem; font-weight: 700; }
+.nav-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--card); font-size: 1.2rem; color: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition);
+}
+.nav-btn:active { background: var(--primary-light); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat-card {
+  background: var(--card); border-radius: var(--radius-m);
+  padding: 14px 12px; text-align: center; box-shadow: var(--shadow-s);
+}
+.stat-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); line-height: 1; }
+.stat-unit  { font-size: .65rem; color: var(--text-soft); font-weight: 600; }
+.stat-label { font-size: .72rem; color: var(--text-soft); margin-top: 4px; }
+
+.sport-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.sport-row:last-child { border-bottom: none; }
+.sport-icon-sm { font-size: 1.3rem; flex-shrink: 0; }
+.sport-info   { flex: 1; }
+.sport-name   { font-size: .88rem; font-weight: 600; margin-bottom: 4px; }
+.sport-bar    { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.sport-fill   { height: 100%; background: var(--act-color, var(--primary)); border-radius: 2px; transition: width .6s ease; }
+.sport-count  { font-size: .78rem; color: var(--text-soft); white-space: nowrap; }
+
+.heatmap-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 12px;
+}
+.heatmap-day-label {
+  text-align: center; font-size: .65rem; font-weight: 700;
+  color: var(--text-soft); text-transform: uppercase; padding-bottom: 4px;
+}
+.heatmap-cell {
+  aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center;
+  justify-content: center; font-size: .68rem; font-weight: 600;
+  background: var(--bg); color: var(--text-soft); cursor: pointer;
+  transition: background var(--transition);
+}
+.heatmap-cell.has-1  { background: #B2DFDB; color: var(--primary-dark); }
+.heatmap-cell.has-2  { background: #80CBC4; color: var(--primary-dark); }
+.heatmap-cell.has-3\+ { background: var(--primary); color: #fff; }
+.heatmap-cell.today  { outline: 2px solid var(--accent); outline-offset: 1px; }
+.heatmap-cell.empty  { background: transparent; cursor: default; }
+
+.modal {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.45); display: flex; align-items: flex-end;
+  animation: fadeBg .2s ease;
+}
+@keyframes fadeBg { from { background: rgba(0,0,0,0); } }
+.modal-card {
+  background: var(--card); width: 100%; border-radius: var(--radius-l) var(--radius-l) 0 0;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  animation: slideUpModal .25s ease;
+  max-height: 80dvh; overflow-y: auto;
+}
+@keyframes slideUpModal { from { transform: translateY(100%); } }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.modal-header h3 { font-size: 1.1rem; font-weight: 700; }
+.close-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--bg); font-size: 1.2rem; cursor: pointer; color: var(--text-soft);
+  display: flex; align-items: center; justify-content: center;
+}
+.hint { font-size: .75rem; color: var(--text-soft); margin-top: 4px; }
+.hint a { color: var(--primary); text-decoration: none; }
+
+.setup-steps { list-style: none; counter-reset: step; margin: 12px 0; }
+.setup-steps li {
+  counter-increment: step; padding: 8px 0 8px 36px; position: relative;
+  font-size: .85rem; border-bottom: 1px solid var(--border); color: var(--text);
+}
+.setup-steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 8px;
+  width: 24px; height: 24px; background: var(--primary); color: #fff;
+  border-radius: 50%; font-size: .7rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.delete-btn {
+  padding: 7px 14px; border-radius: var(--radius-s); border: 1.5px solid #FFCDD2;
+  background: #FFF5F5; color: #E53935; font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: background var(--transition);
+}
+.delete-btn:active { background: #FFCDD2; }
+.edit-btn {
+  padding: 7px 14px; border-radius: var(--radius-s); border: 1.5px solid var(--primary-light);
+  background: var(--primary-light); color: var(--primary-dark); font-size: .8rem; font-weight: 600; cursor: pointer;
+}
+
+.toast {
+  position: fixed; bottom: calc(var(--nav-h) + 16px); left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #263238; color: #fff; padding: 11px 20px; border-radius: 24px;
+  font-size: .85rem; font-weight: 500; opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s; white-space: nowrap; z-index: 300;
+  box-shadow: var(--shadow-l);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.text-muted { color: var(--text-soft); font-size: .83rem; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 id="page-title">Log Activity</h1>
+        <p class="subtitle">Today, <span id="today-date"></span></p>
+      </div>
+      <div class="header-right">
+        <button id="google-btn" class="icon-btn" title="Connect Google Calendar" onclick="toggleGoogleAuth()">🔗</button>
+        <button class="icon-btn" title="Settings" onclick="showSettings()">⚙️</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+    <!-- LOG TAB -->
+    <section id="tab-log" class="tab-content active">
+      <div class="section-card">
+        <div class="section-title">Choose Activity</div>
+        <div class="activity-grid" id="activity-grid"></div>
+      </div>
+
+      <div class="section-card" id="time-section" style="display:none">
+        <div class="section-title">Set Time &amp; Duration</div>
+
+        <div class="input-group">
+          <label for="activity-date">Date</label>
+          <input type="date" id="activity-date">
+        </div>
+
+        <div class="input-row">
+          <div class="input-group">
+            <label for="activity-start">Start Time</label>
+            <input type="time" id="activity-start">
+          </div>
+          <div class="input-group">
+            <label for="activity-duration">Duration</label>
+            <select id="activity-duration">
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60" selected>1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+              <option value="150">2.5 hours</option>
+              <option value="180">3 hours</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group" id="custom-duration-group" style="display:none">
+          <label for="custom-duration">Custom (minutes)</label>
+          <input type="number" id="custom-duration" min="1" max="600" placeholder="e.g. 75">
+        </div>
+
+        <div class="input-group">
+          <label for="activity-notes">Notes <span class="text-muted">(optional)</span></label>
+          <textarea id="activity-notes" rows="2" placeholder="e.g. Personal best, 5K in 24 mins…"></textarea>
+        </div>
+
+        <div id="calendar-sync-row" class="sync-row">
+          <span class="sync-label">📅 Sync to Google Calendar</span>
+          <label class="toggle">
+            <input type="checkbox" id="sync-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <button id="save-btn" class="primary-btn" onclick="saveActivity()">
+          <span>Save Activity</span>
+          <span class="btn-icon">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- HISTORY TAB -->
+    <section id="tab-history" class="tab-content">
+      <div class="filter-row">
+        <input type="month" id="history-month" onchange="renderHistory()">
+        <button id="filter-all" class="filter-btn active" onclick="filterHistory('all')">All</button>
+        <span id="filter-chips"></span>
+      </div>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- SUMMARY TAB -->
+    <section id="tab-summary" class="tab-content">
+      <div class="month-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <h2 id="summary-month-label"></h2>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="section-card">
+        <div class="section-title">Activity Breakdown</div>
+        <div id="sport-breakdown"></div>
+      </div>
+      <div class="section-card">
+        <div class="section-title">Month at a Glance</div>
+        <div id="calendar-heatmap"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav id="bottom-nav">
+    <button class="nav-item active" data-tab="log">
+      <span class="nav-icon">➕</span>
+      <span class="nav-label">Log</span>
+    </button>
+    <button class="nav-item" data-tab="history">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">History</span>
+    </button>
+    <button class="nav-item" data-tab="summary">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Summary</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- Settings modal -->
+<div id="settings-modal" class="modal" style="display:none" onclick="closeSettings()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Settings</h3>
+      <button class="close-btn" onclick="closeSettings()">×</button>
+    </div>
+    <div class="input-group">
+      <label for="google-client-id">Google OAuth Client ID</label>
+      <input type="text" id="google-client-id" placeholder="xxxx.apps.googleusercontent.com">
+      <p class="hint">Required for Google Calendar sync.
+        <a href="#" onclick="return showSetupGuide()">How to get it?</a></p>
+    </div>
+    <div id="setup-guide" style="display:none;margin-bottom:16px">
+      <ol class="setup-steps">
+        <li>Go to <strong>console.cloud.google.com</strong></li>
+        <li>Create a project (or select an existing one)</li>
+        <li>Enable the <strong>Google Calendar API</strong></li>
+        <li>Go to <em>APIs &amp; Services → Credentials</em></li>
+        <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web application)</li>
+        <li>Add <code>null</code> as origin (for file:// access) or host on GitHub Pages for full support</li>
+        <li>Copy the Client ID and paste it above</li>
+      </ol>
+    </div>
+    <button class="primary-btn" onclick="persistSettings()" style="margin-top:4px">
+      <span>Save Settings</span>
+    </button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const ACTIVITIES = [
+  { id: 'gym',        name: 'Gym',        icon: '🏋️',  color: '#EF5350' },
+  { id: 'running',    name: 'Running',    icon: '🏃',  color: '#FF7043' },
+  { id: 'swimming',   name: 'Swimming',   icon: '🏊',  color: '#29B6F6' },
+  { id: 'cycling',    name: 'Cycling',    icon: '🚴',  color: '#66BB6A' },
+  { id: 'basketball', name: 'Basketball', icon: '🏀',  color: '#FFA726' },
+  { id: 'football',   name: 'Football',   icon: '⚽',  color: '#26A69A' },
+  { id: 'tennis',     name: 'Tennis',     icon: '🎾',  color: '#D4E157' },
+  { id: 'yoga',       name: 'Yoga',       icon: '🧘',  color: '#AB47BC' },
+  { id: 'boxing',     name: 'Boxing',     icon: '🥊',  color: '#EC407A' },
+  { id: 'cricket',    name: 'Cricket',    icon: '🏏',  color: '#8D6E63' },
+  { id: 'badminton',  name: 'Badminton',  icon: '🏸',  color: '#26C6DA' },
+  { id: 'volleyball', name: 'Volleyball', icon: '🏐',  color: '#FFCA28' },
+  { id: 'hiking',     name: 'Hiking',     icon: '🥾',  color: '#A5D6A7' },
+  { id: 'other',      name: 'Other',      icon: '🏅',  color: '#78909C' },
+];
+
+const ACT_MAP = Object.fromEntries(ACTIVITIES.map(a => [a.id, a]));
+
+let state = {
+  selectedActivity: null,
+  currentTab: 'log',
+  summaryMonth: new Date(),
+  historyFilter: 'all',
+  googleSignedIn: false,
+  gapiReady: false,
+  gisReady: false,
+  tokenClient: null,
+  accessToken: null,
+  editingId: null,
+};
+
+function loadActivities() { return JSON.parse(localStorage.getItem('activities') || '[]'); }
+function saveActivities(list) { localStorage.setItem('activities', JSON.stringify(list)); }
+function loadSettings() { return JSON.parse(localStorage.getItem('settings') || '{}'); }
+function saveSettings(s) { localStorage.setItem('settings', JSON.stringify(s)); }
+
+function uuid() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function nowTime() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function formatDate(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  const today = todayISO();
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  if (iso === today)     return 'Today';
+  if (iso === yesterday) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+}
+function formatDuration(mins) {
+  const h = Math.floor(mins / 60), m = mins % 60;
+  if (!h) return `${m}m`;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+
+function renderActivityGrid() {
+  const grid = document.getElementById('activity-grid');
+  grid.innerHTML = ACTIVITIES.map(a => `
+    <button class="activity-chip${state.selectedActivity === a.id ? ' selected' : ''}"
+            style="--act-color:${a.color}"
+            onclick="selectActivity('${a.id}')">
+      <span class="chip-icon">${a.icon}</span>
+      <span class="chip-label">${a.name}</span>
+    </button>`).join('');
+}
+
+function selectActivity(id) {
+  state.selectedActivity = id;
+  renderActivityGrid();
+  const ts = document.getElementById('time-section');
+  ts.style.display = 'block';
+  if (!state.editingId) {
+    const dateEl = document.getElementById('activity-date');
+    if (!dateEl.value) dateEl.value = todayISO();
+    const timeEl = document.getElementById('activity-start');
+    if (!timeEl.value) timeEl.value = nowTime();
+  }
+  ts.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderHistory() {
+  const activities = loadActivities();
+  const val = document.getElementById('history-month').value;
+  if (!val) return;
+  const [year, month] = val.split('-').map(Number);
+  const filtered = activities.filter(a => {
+    const d = new Date(a.date + 'T12:00:00');
+    return d.getFullYear() === year && d.getMonth()+1 === month
+      && (state.historyFilter === 'all' || a.activityId === state.historyFilter);
+  });
+
+  renderHistoryFilters(activities, year, month);
+
+  const container = document.getElementById('history-list');
+  if (!filtered.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">No activities logged</div>
+        <div class="empty-hint">Start tracking by tapping the Log tab</div>
+      </div>`;
+    return;
+  }
+
+  const groups = {};
+  filtered.sort((a,b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
+  filtered.forEach(a => { (groups[a.date] = groups[a.date] || []).push(a); });
+
+  container.innerHTML = Object.entries(groups).map(([date, items]) => `
+    <div class="day-group">
+      <div class="day-label">${formatDate(date)}</div>
+      ${items.map(entryHTML).join('')}
+    </div>`).join('');
+}
+
+function renderHistoryFilters(activities, year, month) {
+  const used = [...new Set(
+    activities.filter(a => {
+      const d = new Date(a.date + 'T12:00:00');
+      return d.getFullYear() === year && d.getMonth()+1 === month;
+    }).map(a => a.activityId)
+  )];
+  const container = document.getElementById('filter-chips');
+  container.innerHTML = used.map(id => {
+    const act = ACT_MAP[id];
+    return `<button class="filter-btn${state.historyFilter===id?' active':''}"
+              onclick="filterHistory('${id}')">${act ? act.icon+' '+act.name : id}</button>`;
+  }).join('');
+}
+
+function entryHTML(a) {
+  const act = ACT_MAP[a.activityId] || ACT_MAP['other'];
+  const calBadge = a.calendarEventId ? `<div class="cal-badge">📅 Synced to Google Calendar</div>` : '';
+  const notes = a.notes ? `<div class="detail-notes">"${a.notes}"</div>` : '';
+  return `
+    <div class="activity-entry" style="--act-color:${act.color}" onclick="toggleDetail('${a.id}')">
+      <span class="entry-icon">${act.icon}</span>
+      <div class="entry-info">
+        <div class="entry-name">${act.name}</div>
+        <div class="entry-time">${a.startTime} · ${formatDuration(a.duration)}</div>
+        <div class="entry-detail" id="detail-${a.id}">
+          ${calBadge}${notes}
+          <div class="entry-actions">
+            <button class="edit-btn"   onclick="startEdit('${a.id}',event)">Edit</button>
+            <button class="delete-btn" onclick="deleteActivity('${a.id}',event)">Delete</button>
+          </div>
+        </div>
+      </div>
+      <span class="entry-badge">${formatDuration(a.duration)}</span>
+    </div>`;
+}
+
+function toggleDetail(id) {
+  const el = document.getElementById('detail-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+function filterHistory(filter) {
+  state.historyFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  renderHistory();
+  if (filter === 'all') document.getElementById('filter-all').classList.add('active');
+}
+
+function renderSummary() {
+  const d = state.summaryMonth;
+  const mk = monthKey(d);
+  document.getElementById('summary-month-label').textContent =
+    d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  const all = loadActivities();
+  const mActivities = all.filter(a => a.date.startsWith(mk));
+
+  const totalSessions = mActivities.length;
+  const totalMins = mActivities.reduce((s,a) => s + a.duration, 0);
+  const sportCounts = {};
+  mActivities.forEach(a => { sportCounts[a.activityId] = (sportCounts[a.activityId]||0) + 1; });
+  const topSport = Object.entries(sportCounts).sort((a,b) => b[1]-a[1])[0];
+  const topAct = topSport ? ACT_MAP[topSport[0]] : null;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${totalSessions}</div>
+      <div class="stat-label">Sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${Math.round(totalMins/60)}<span class="stat-unit">h</span></div>
+      <div class="stat-label">Total Time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${topAct ? topAct.icon : '—'}</div>
+      <div class="stat-label">${topAct ? topAct.name : 'No data'}</div>
+    </div>`;
+
+  const maxCount = Math.max(...Object.values(sportCounts), 1);
+  const breakdown = Object.entries(sportCounts)
+    .sort((a,b) => b[1]-a[1])
+    .map(([id, count]) => {
+      const act = ACT_MAP[id] || ACT_MAP['other'];
+      const mins = mActivities.filter(a=>a.activityId===id).reduce((s,a)=>s+a.duration,0);
+      const pct = Math.round((count/maxCount)*100);
+      return `
+        <div class="sport-row">
+          <span class="sport-icon-sm">${act.icon}</span>
+          <div class="sport-info">
+            <div class="sport-name">${act.name}</div>
+            <div class="sport-bar"><div class="sport-fill" style="width:${pct}%;--act-color:${act.color}"></div></div>
+          </div>
+          <div class="sport-count">${count}× · ${formatDuration(mins)}</div>
+        </div>`;
+    }).join('');
+
+  document.getElementById('sport-breakdown').innerHTML =
+    breakdown || '<p class="text-muted" style="padding:8px 0">No activities this month</p>';
+
+  renderHeatmap(d, mActivities);
+}
+
+function renderHeatmap(monthDate, mActivities) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDow = new Date(year, month, 1).getDay();
+  const todayISO_ = todayISO();
+
+  const dayCounts = {};
+  mActivities.forEach(a => {
+    const day = parseInt(a.date.slice(8));
+    dayCounts[day] = (dayCounts[day]||0) + 1;
+  });
+
+  const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let cells = DOW.map(d => `<div class="heatmap-day-label">${d}</div>`).join('');
+  for (let i = 0; i < firstDow; i++) cells += `<div class="heatmap-cell empty"></div>`;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const count = dayCounts[day] || 0;
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const cls = count === 0 ? '' : count === 1 ? 'has-1' : count === 2 ? 'has-2' : 'has-3+';
+    const todayCls = iso === todayISO_ ? ' today' : '';
+    cells += `<div class="heatmap-cell ${cls}${todayCls}">${day}</div>`;
+  }
+
+  document.getElementById('calendar-heatmap').innerHTML = `
+    <div class="heatmap-grid">${cells}</div>
+    <div style="display:flex;gap:12px;margin-top:10px;font-size:.72rem;color:var(--text-soft);align-items:center">
+      <span>🔲 None</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#B2DFDB;border-radius:3px;display:inline-block"></span>1</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:#80CBC4;border-radius:3px;display:inline-block"></span>2</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:14px;background:var(--primary);border-radius:3px;display:inline-block"></span>3+</span>
+    </div>`;
+}
+
+function changeMonth(delta) {
+  const d = state.summaryMonth;
+  state.summaryMonth = new Date(d.getFullYear(), d.getMonth() + delta, 1);
+  renderSummary();
+}
+
+function switchTab(tab) {
+  state.currentTab = tab;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
+
+  const titles = { log: 'Log Activity', history: 'History', summary: 'Summary' };
+  document.getElementById('page-title').textContent = titles[tab];
+
+  if (tab === 'history') {
+    if (!document.getElementById('history-month').value)
+      document.getElementById('history-month').value = monthKey(new Date());
+    renderHistory();
+  }
+  if (tab === 'summary') renderSummary();
+}
+
+async function saveActivity() {
+  const actId = state.selectedActivity;
+  if (!actId) { showToast('Please select an activity'); return; }
+
+  const date  = document.getElementById('activity-date').value;
+  const start = document.getElementById('activity-start').value;
+  const durSel = document.getElementById('activity-duration').value;
+  const duration = durSel === 'custom'
+    ? parseInt(document.getElementById('custom-duration').value) || 0
+    : parseInt(durSel);
+  const notes  = document.getElementById('activity-notes').value.trim();
+  const doSync = document.getElementById('sync-toggle').checked;
+
+  if (!date)              { showToast('Please set a date'); return; }
+  if (!start)             { showToast('Please set a start time'); return; }
+  if (!duration || duration < 1) { showToast('Please set a valid duration'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Saving…';
+
+  const activities = loadActivities();
+  let calendarEventId = null;
+
+  if (state.editingId) {
+    const idx = activities.findIndex(a => a.id === state.editingId);
+    if (idx >= 0) {
+      calendarEventId = activities[idx].calendarEventId || null;
+      if (doSync && state.googleSignedIn)
+        calendarEventId = await upsertCalendarEvent({ activityId: actId, date, startTime: start, duration, notes }, calendarEventId);
+      activities[idx] = { ...activities[idx], activityId: actId, date, startTime: start, duration, notes, calendarEventId };
+    }
+    state.editingId = null;
+  } else {
+    if (doSync && state.googleSignedIn)
+      calendarEventId = await upsertCalendarEvent({ activityId: actId, date, startTime: start, duration, notes }, null);
+    activities.push({ id: uuid(), activityId: actId, date, startTime: start, duration, notes, calendarEventId, createdAt: Date.now() });
+  }
+
+  saveActivities(activities);
+  resetForm();
+  btn.disabled = false;
+  btn.querySelector('span').textContent = 'Save Activity';
+  const act = ACT_MAP[actId];
+  showToast(`${act.icon} ${act.name} logged!${calendarEventId ? ' 📅' : ''}`);
+}
+
+function resetForm() {
+  state.selectedActivity = null;
+  state.editingId = null;
+  renderActivityGrid();
+  document.getElementById('time-section').style.display = 'none';
+  document.getElementById('activity-date').value = '';
+  document.getElementById('activity-start').value = '';
+  document.getElementById('activity-duration').value = '60';
+  document.getElementById('activity-notes').value = '';
+  document.getElementById('custom-duration-group').style.display = 'none';
+  document.getElementById('save-btn').querySelector('span').textContent = 'Save Activity';
+}
+
+function startEdit(id, event) {
+  event.stopPropagation();
+  const activities = loadActivities();
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+
+  state.editingId = id;
+  switchTab('log');
+  state.selectedActivity = a.activityId;
+  renderActivityGrid();
+
+  document.getElementById('activity-date').value  = a.date;
+  document.getElementById('activity-start').value = a.startTime;
+  document.getElementById('activity-notes').value = a.notes || '';
+  document.getElementById('save-btn').querySelector('span').textContent = 'Update Activity';
+  document.getElementById('time-section').style.display = 'block';
+
+  const stdDurations = [15,30,45,60,90,120,150,180];
+  if (stdDurations.includes(a.duration)) {
+    document.getElementById('activity-duration').value = String(a.duration);
+  } else {
+    document.getElementById('activity-duration').value = 'custom';
+    document.getElementById('custom-duration-group').style.display = 'block';
+    document.getElementById('custom-duration').value = a.duration;
+  }
+}
+
+function deleteActivity(id, event) {
+  event.stopPropagation();
+  if (!confirm('Delete this activity?')) return;
+  const activities = loadActivities();
+  const a = activities.find(x => x.id === id);
+  if (a && a.calendarEventId && state.googleSignedIn)
+    deleteCalendarEvent(a.calendarEventId).catch(() => {});
+  saveActivities(activities.filter(x => x.id !== id));
+  renderHistory();
+  showToast('Activity deleted');
+}
+
+function onDurationChange() {
+  const sel = document.getElementById('activity-duration').value;
+  document.getElementById('custom-duration-group').style.display = sel === 'custom' ? 'block' : 'none';
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showSettings() {
+  const s = loadSettings();
+  document.getElementById('google-client-id').value = s.googleClientId || '';
+  document.getElementById('settings-modal').style.display = 'flex';
+}
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+function persistSettings() {
+  const clientId = document.getElementById('google-client-id').value.trim();
+  const s = loadSettings();
+  s.googleClientId = clientId;
+  saveSettings(s);
+  closeSettings();
+  showToast('Settings saved');
+  if (clientId) initGoogleAuth(clientId);
+}
+function showSetupGuide() {
+  document.getElementById('setup-guide').style.display = 'block';
+  return false;
+}
+
+function loadGoogleScripts(clientId) {
+  return new Promise((resolve) => {
+    if (window.gapi) { resolve(); return; }
+    const gapiScript = document.createElement('script');
+    gapiScript.src = 'https://apis.google.com/js/api.js';
+    gapiScript.onload = () => {
+      gapi.load('client', async () => {
+        await gapi.client.init({});
+        await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest');
+        state.gapiReady = true;
+        checkGoogleReady();
+        resolve();
+      });
+    };
+    document.head.appendChild(gapiScript);
+
+    const gisScript = document.createElement('script');
+    gisScript.src = 'https://accounts.google.com/gsi/client';
+    gisScript.onload = () => {
+      state.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/calendar.events',
+        callback: (resp) => {
+          if (resp.error) { showToast('Google sign-in failed'); return; }
+          state.accessToken = resp.access_token;
+          state.googleSignedIn = true;
+          gapi.client.setToken({ access_token: resp.access_token });
+          updateGoogleUI(true);
+          showToast('Connected to Google Calendar 📅');
+        },
+      });
+      state.gisReady = true;
+      checkGoogleReady();
+    };
+    document.head.appendChild(gisScript);
+  });
+}
+
+function checkGoogleReady() {
+  if (state.gapiReady && state.gisReady)
+    document.getElementById('google-btn').title = 'Connect Google Calendar';
+}
+
+async function initGoogleAuth(clientId) {
+  if (!clientId) return;
+  await loadGoogleScripts(clientId);
+}
+
+function toggleGoogleAuth() {
+  const s = loadSettings();
+  if (!s.googleClientId) { showSettings(); showToast('Enter your Google Client ID first'); return; }
+  if (!state.gapiReady || !state.gisReady) { showToast('Loading Google API…'); initGoogleAuth(s.googleClientId); return; }
+  if (state.googleSignedIn) {
+    google.accounts.oauth2.revoke(state.accessToken, () => {});
+    state.googleSignedIn = false;
+    state.accessToken = null;
+    gapi.client.setToken(null);
+    updateGoogleUI(false);
+    showToast('Disconnected from Google Calendar');
+  } else {
+    state.tokenClient.requestAccessToken({ prompt: '' });
+  }
+}
+
+function updateGoogleUI(connected) {
+  const btn = document.getElementById('google-btn');
+  btn.innerHTML = connected ? '📅' : '🔗';
+  btn.title = connected ? 'Disconnect Google Calendar' : 'Connect Google Calendar';
+  btn.classList.toggle('google-connected', connected);
+  document.getElementById('calendar-sync-row').style.display = connected ? 'flex' : 'none';
+}
+
+async function upsertCalendarEvent(entry, existingEventId) {
+  if (!state.googleSignedIn || !state.gapiReady) return null;
+  try {
+    const act = ACT_MAP[entry.activityId] || ACT_MAP['other'];
+    const startDate = new Date(entry.date + 'T' + entry.startTime + ':00');
+    const endDate   = new Date(startDate.getTime() + entry.duration * 60000);
+    const toISO = (d) => d.toISOString().replace(/\.\d{3}Z$/, '+00:00');
+    const resource = {
+      summary: `${act.icon} ${act.name}`,
+      description: entry.notes || 'Logged via ActiveTrack',
+      start: { dateTime: toISO(startDate) },
+      end:   { dateTime: toISO(endDate) },
+      colorId: ({ gym:'11',running:'6',swimming:'7',cycling:'2',basketball:'6',football:'2',tennis:'5',yoga:'3',boxing:'11',cricket:'8',badminton:'7',volleyball:'5',hiking:'10' })[entry.activityId] || '1',
+    };
+    if (existingEventId) {
+      const r = await gapi.client.calendar.events.update({ calendarId:'primary', eventId:existingEventId, resource });
+      return r.result.id;
+    } else {
+      const r = await gapi.client.calendar.events.insert({ calendarId:'primary', resource });
+      return r.result.id;
+    }
+  } catch(e) { showToast('Calendar sync failed — saved locally'); return null; }
+}
+
+async function deleteCalendarEvent(eventId) {
+  if (!state.googleSignedIn || !state.gapiReady) return;
+  await gapi.client.calendar.events.delete({ calendarId: 'primary', eventId });
+}
+
+function init() {
+  document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+
+  renderActivityGrid();
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  document.getElementById('activity-duration').addEventListener('change', onDurationChange);
+  document.getElementById('history-month').value = monthKey(new Date());
+  document.getElementById('calendar-sync-row').style.display = 'none';
+
+  const s = loadSettings();
+  if (s.googleClientId) initGoogleAuth(s.googleClientId);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#26A69A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ActiveTrack">
+  <title>ActiveTrack</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header id="header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 id="page-title">Log Activity</h1>
+        <p class="subtitle">Today, <span id="today-date"></span></p>
+      </div>
+      <div class="header-right">
+        <button id="google-btn" class="icon-btn" title="Connect Google Calendar" onclick="toggleGoogleAuth()">🔗</button>
+        <button class="icon-btn" title="Settings" onclick="showSettings()">⚙️</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main content ───────────────────────────────────────────── -->
+  <main id="main-content">
+
+    <!-- LOG TAB -->
+    <section id="tab-log" class="tab-content active">
+      <div class="section-card">
+        <div class="section-title">Choose Activity</div>
+        <div class="activity-grid" id="activity-grid"></div>
+      </div>
+
+      <div class="section-card" id="time-section" style="display:none">
+        <div class="section-title">Set Time &amp; Duration</div>
+
+        <div class="input-group">
+          <label for="activity-date">Date</label>
+          <input type="date" id="activity-date">
+        </div>
+
+        <div class="input-row">
+          <div class="input-group">
+            <label for="activity-start">Start Time</label>
+            <input type="time" id="activity-start">
+          </div>
+          <div class="input-group">
+            <label for="activity-duration">Duration</label>
+            <select id="activity-duration">
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60" selected>1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+              <option value="150">2.5 hours</option>
+              <option value="180">3 hours</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group" id="custom-duration-group" style="display:none">
+          <label for="custom-duration">Custom (minutes)</label>
+          <input type="number" id="custom-duration" min="1" max="600" placeholder="e.g. 75">
+        </div>
+
+        <div class="input-group">
+          <label for="activity-notes">Notes <span class="text-muted">(optional)</span></label>
+          <textarea id="activity-notes" rows="2" placeholder="e.g. Personal best, 5K in 24 mins…"></textarea>
+        </div>
+
+        <div id="calendar-sync-row" class="sync-row">
+          <span class="sync-label">📅 Sync to Google Calendar</span>
+          <label class="toggle">
+            <input type="checkbox" id="sync-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <button id="save-btn" class="primary-btn" onclick="saveActivity()">
+          <span>Save Activity</span>
+          <span class="btn-icon">✓</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- HISTORY TAB -->
+    <section id="tab-history" class="tab-content">
+      <div class="filter-row">
+        <input type="month" id="history-month" onchange="renderHistory()">
+        <button id="filter-all" class="filter-btn active" onclick="filterHistory('all')">All</button>
+        <span id="filter-chips"></span>
+      </div>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- SUMMARY TAB -->
+    <section id="tab-summary" class="tab-content">
+      <div class="month-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+        <h2 id="summary-month-label"></h2>
+        <button class="nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <div class="section-card">
+        <div class="section-title">Activity Breakdown</div>
+        <div id="sport-breakdown"></div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">Month at a Glance</div>
+        <div id="calendar-heatmap"></div>
+      </div>
+    </section>
+
+  </main><!-- /main-content -->
+
+  <!-- ── Bottom Nav ─────────────────────────────────────────────── -->
+  <nav id="bottom-nav">
+    <button class="nav-item active" data-tab="log">
+      <span class="nav-icon">➕</span>
+      <span class="nav-label">Log</span>
+    </button>
+    <button class="nav-item" data-tab="history">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">History</span>
+    </button>
+    <button class="nav-item" data-tab="summary">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Summary</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- ── Settings modal ──────────────────────────────────────────── -->
+<div id="settings-modal" class="modal" style="display:none" onclick="closeSettings()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Settings</h3>
+      <button class="close-btn" onclick="closeSettings()">×</button>
+    </div>
+
+    <div class="input-group">
+      <label for="google-client-id">Google OAuth Client ID</label>
+      <input type="text" id="google-client-id" placeholder="xxxx.apps.googleusercontent.com">
+      <p class="hint">Required for Google Calendar sync.
+        <a href="#" onclick="return showSetupGuide()">How to get it?</a></p>
+    </div>
+
+    <div id="setup-guide" style="display:none;margin-bottom:16px">
+      <ol class="setup-steps">
+        <li>Go to <strong>console.cloud.google.com</strong></li>
+        <li>Create a project (or select an existing one)</li>
+        <li>Enable the <strong>Google Calendar API</strong></li>
+        <li>Go to <em>APIs &amp; Services → Credentials</em></li>
+        <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web application)</li>
+        <li>Add your app URL to <em>Authorised JavaScript origins</em><br>
+            (use <code>http://localhost:PORT</code> for local testing)</li>
+        <li>Copy the Client ID and paste it above</li>
+      </ol>
+    </div>
+
+    <button class="primary-btn" onclick="persistSettings()" style="margin-top:4px">
+      <span>Save Settings</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────────────────── -->
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
